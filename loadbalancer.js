@@ -4,7 +4,7 @@ const metricQueues = require('./fetch'); // Import the metric queues from the fe
 
 const app = express();
 const proxy = httpProxy.createProxyServer({});
-
+const actualQueue = metricQueues[`${server.host}:${server.port}`]
 const servers = [
     { host: '54.208.139.171', port: 8080, IC:0.5 },
     { host: '44.222.156.160', port: 8080, IC:0.5 },
@@ -24,7 +24,7 @@ app.use(async (req, res) => {
     for (const server of servers) {
         try {
             // Fetch metrics from the queue for the current server
-            const queue = metricQueues[`${server.host}:${server.port}`];
+            const queue = actualQueue;
             // Get the latest metric data from the queue
             const latestMetric = queue.peekBack(); // Assuming peek() function retrieves the latest item without removing it
             
@@ -82,7 +82,7 @@ app.use(async (req, res) => {
     for (const server of servers) {
         try {
             // Fetch metrics from the queue for the current server
-            const queue = metricQueues[`${server.host}:${server.port}`];
+            const queue = actualQueue;
             const latestMetric = queue.peekBack();
             
             if (latestMetric) {
