@@ -4,11 +4,14 @@ const metricQueues = require('./fetch'); // Import the metric queues from the fe
 
 const app = express();
 const proxy = httpProxy.createProxyServer({});
-const actualQueue = metricQueues[`${server.host}:${server.port}`]
+
 const servers = [
     { host: '54.208.139.171', port: 8080, IC:0.5 },
     { host: '44.222.156.160', port: 8080, IC:0.5 },
 ];
+
+
+
 
 app.use(async (req, res) => {
     let minLoad = Infinity;
@@ -18,13 +21,27 @@ app.use(async (req, res) => {
     let deltaMemories = [];
     let deltaConnections = [];
 
+    const serverMetrics = {};
+for (const server of servers) {
+    try {
+        console.log("HHHHHHHHHHHHHHHHH");
+        const queue = metricQueues[`${server.host}:${server.port}`];
+        if (queue) {
+            serverMetrics[`${server.host}:${server.port}`]=queue;
+        } else {
+            console.error(`Metric queue not found for server ${server.host}:${server.port}`);
+        }
+    } catch (error) {
+        console.error(`Error fetching metrics for server ${server.host}:${server.port}: ${error.message}`);
+    }
+}
     // Loop through each server to compute deltas
     let previousCPU = 0, previousMemory = 0, previousConnections = 0;
 
     for (const server of servers) {
         try {
             // Fetch metrics from the queue for the current server
-            const queue = actualQueue;
+            const queue = serverMetrics[`${server.host}:${server.port}`];
             // Get the latest metric data from the queue
             const latestMetric = queue.peekBack(); // Assuming peek() function retrieves the latest item without removing it
             
@@ -82,7 +99,7 @@ app.use(async (req, res) => {
     for (const server of servers) {
         try {
             // Fetch metrics from the queue for the current server
-            const queue = actualQueue;
+            const queue = serverMetrics[`${server.host}:${server.port}`];
             const latestMetric = queue.peekBack();
             
             if (latestMetric) {
@@ -135,7 +152,12 @@ app.use(async (req, res) => {
         console.log(`Redirected to ${host}:${port}`);
         console.log("***************************************************************");
     } else {
-        res.status(500).send('Unable to find a server to handle the request');
+        const target = `http://${servers[0].host}:${servers[0].port}`;
+        proxy.web(req, res, { target });
+        console.log(`Redirected to ${servers[0].host}:${servers[0].port}`);
+        console.log("***************************************************************");
+        console.log("MINLOADSERVCER VAR GOT NULL");
+        // res.status(500).send('Unable to find a server to handle the request');
     }
 });
 
